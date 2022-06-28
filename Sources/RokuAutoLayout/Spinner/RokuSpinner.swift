@@ -55,14 +55,42 @@ final public class RokuSpinner: UIView {
     }
 
     public static func createMaskedImage(with image: UIImage, fillColor: UIColor) -> UIImage {
-//        // create an image context based on that
-//        let size = image.size
-//
-//
-//        // get context
-//        var context: CGContext = UIGraphicsGetCurrentContext() ?? nil
-//        CGContextSaveGState(context)
-        return UIImage()
+        // create an image context based on that
+        let size = image.size
+    
+        // get context
+        guard let context = UIGraphicsGetCurrentContext(), let imageMask = image.cgImage else {
+            return UIImage()
+        }
+        context.saveGState()
+        
+        // shift upward and scale y by -1, because Quartz2D has the coordinates flipped
+        context.translateBy(x: 0.0, y: size.height)
+        context.scaleBy(x: 1.0, y: -1.0);
+        
+        // use the original as an image mask (alpha 1 = opaque, alpha 0 = transparent)
+        let imageRect = CGRect(x: 0.0, y: 0.0, width: size.width, height: size.height)
+        context.clip(to: imageRect, mask: imageMask)
+        
+        var red: CGFloat = 0.0
+        var green: CGFloat = 0.0
+        var blue: CGFloat = 0.0
+        var alpha: CGFloat = 0.0
+        
+        // fill the whole image with the fillColor, which the mask will filter
+        fillColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        context.setFillColor(red: red, green: green, blue: blue, alpha: alpha)
+        context.fill(imageRect)
+        
+        // restore context
+        context.restoreGState()
+        guard let mask = UIGraphicsGetImageFromCurrentImageContext() else {
+            return UIImage()
+        }
+        
+        UIGraphicsEndImageContext()
+        
+        return mask
     }
     
     deinit {
